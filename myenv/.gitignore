@@ -1,0 +1,11 @@
+# created by virtualenv automatically
+*/ 
+
+*.pyd
+#Lib/site-packages/tensorflow
+site-packages/
+
+*.dist-info
+
+
+
