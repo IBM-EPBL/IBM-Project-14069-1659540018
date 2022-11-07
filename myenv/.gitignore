@@ -1,4 +1,5 @@
 # created by virtualenv automatically
+<<<<<<< HEAD
 */ 
 
 *.pyd
@@ -8,4 +9,6 @@ site-packages/
 *.dist-info
 
 
+=======
+>>>>>>> bf189e86fa94332b4fe7c7b5ab990e07824c1ed3
 
