@@ -5,6 +5,7 @@
 *.pyd
 #Lib/site-packages/tensorflow
 site-packages/
+get-pip.py 
 
 *.dist-info
 
