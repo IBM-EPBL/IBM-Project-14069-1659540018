@@ -192,6 +192,7 @@ private:
             const injector_utils::vmm_index_set_iterator_t start_idx_it);
     void injector_postamble();
     void assign_regs();
+    void set_coef_to_regs();
     void compute_cmp_mask(
             const TRegS &vmm_src, const TRegS &vmm_cmpare, int cmp_predicate);
     void blend_with_mask(const TRegS &vmm_dst, const TRegS &src);
@@ -251,11 +252,11 @@ private:
         exp_ln_flt_max_f, // logf(FLT_MAX) - max normal value
         exp_ln_flt_min_f, // logf(FLT_MIN) - min normal value
         exp_pol, // see correspondent table for float values
-        tanh_idx_bias, // bias applied during index computation
-        tanh_idx_mask, // mask applied to extract index
-        tanh_linear_ubound, // arg below which tanh(x) = x
-        tanh_saturation_lbound, // arg after which tanh(x) = 1.f
-        tanh_pol_table, // table of polynomial coefficients
+        exp_coeff1, // 0.6931473921 (0x3f31721c)
+        exp_coeff2, // 0.2413862043 (0x3e772df2)
+        exp_not_mask17, // ~((1u << 17) - 1)
+        tanh_range, // tanh(x) = x - x^3/3 for |x| < tanh_range
+        tanh_m1d3, // -1/3
         soft_relu_one_twenty_six, // 126.f
         soft_relu_mantissa_sign_mask, // mask for mantissa bits and sign
         soft_relu_pol, // see correspondent table for float values
@@ -274,6 +275,12 @@ private:
         log_five_bit_offset, // 5 bits off (31 = 2^5 - 1)
         log_pol, // see correspondent table for float values
         log_predefined_vals, // see correspondent table for float values
+        log_i127shl23,
+        log_x7fffff,
+        log_log2,
+        log_log1p5,
+        log_f2div3,
+        log_coeffTbl,
         undef_key,
     };
 
@@ -288,7 +295,7 @@ private:
         return te.off + key_off_val_shift * scale;
     }
 
-    TRegS table_val(key_t key, size_t key_off_val_shift = 0) {
+    TRegS table_val(key_t key, TRegS zreg, size_t key_off_val_shift = 0) {
         Xbyak_aarch64::XReg x_addr(h->X_DEFAULT_ADDR);
         auto off = table_off(key, key_off_val_shift);
 
@@ -298,8 +305,8 @@ private:
             x_addr = x_table;
         }
 
-        h->ldr(TReg(z_tmp.getIdx()), ptr(x_addr));
-        return z_tmp;
+        h->ldr(TReg(zreg.getIdx()), ptr(x_addr));
+        return zreg;
     }
 
     // we accept only 32bit hexadecimal table values to avoid any rounding

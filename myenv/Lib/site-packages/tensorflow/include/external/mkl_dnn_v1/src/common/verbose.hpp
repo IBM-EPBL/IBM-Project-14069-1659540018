@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright 2018-2020 Intel Corporation
+* Copyright 2018-2021 Intel Corporation
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -37,12 +37,6 @@ int get_verbose();
 bool get_verbose_timestamp();
 double get_msec();
 
-#if !defined(DISABLE_VERBOSE)
-#define DNNL_VERBOSE_BUF_LEN 1024
-#else
-#define DNNL_VERBOSE_BUF_LEN 1
-#endif
-
 /// A container for primitive desc verbose string.
 struct primitive_desc_t;
 struct pd_info_t {
@@ -75,6 +69,9 @@ private:
     // `is_initialized_` flag, that should be checked before calling `init()`.
     std::once_flag initialization_flag_;
 };
+
+std::string md2fmt_str(const dnnl_memory_desc_t *md);
+std::string md2dim_str(const dnnl_memory_desc_t *md);
 
 } // namespace impl
 } // namespace dnnl
