@@ -8,6 +8,7 @@ site-packages/
 get-pip.py 
 
 *.dist-info
+*.jpg
 
 
 =======
