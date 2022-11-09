@@ -22,7 +22,7 @@
 #include "cpu/cpu_prelu_pd.hpp"
 #include "cpu/x64/cpu_isa_traits.hpp"
 #include "cpu/x64/prelu/jit_prelu_base_kernel.hpp"
-#include "cpu/x64/prelu/jit_prelu_utils.hpp"
+#include "cpu/x64/utils/jit_io_helper.hpp"
 
 namespace dnnl {
 namespace impl {
@@ -48,6 +48,7 @@ protected:
     const data_type_t src_dt_;
     const data_type_t wei_dt_;
     const data_type_t dst_dt_;
+    const size_t dst_tail_block_;
 
     jit_prelu_forward_kernel_t(const cpu_prelu_fwd_pd_t *pd,
             const cpu_isa_t &isa, const int vlen,
@@ -58,10 +59,10 @@ private:
     bool any_tensor_bf16() const override;
     void load_kernel_call_params() override;
     void finalize() override {}
-    const Xbyak::Reg64 &reg_src_ = r10;
-    const Xbyak::Reg64 &reg_dst_ = r11;
 
 protected:
+    const Xbyak::Reg64 &reg_src_ = r10;
+    const Xbyak::Reg64 &reg_dst_ = r11;
     const Xbyak::Reg64 &reg_weights_ = r12;
     const cpu_prelu_fwd_pd_t *pd_;
 };
@@ -84,7 +85,7 @@ private:
             const Xbyak::Address &src_addr, const Vmm &dst_vmm, bool tail);
     void uni_vfmadd132ps(
             const Vmm &x1, const Vmm &x2, const Xbyak::Operand &op, bool tail);
-    std::map<data_type_t, std::pair<Vmm, Vmm>>
+    std::map<data_type_t, io::io_saturation_conf_t>
     create_saturation_vmm_map() const;
 
     const bool saturation_needed_ = false;
@@ -96,7 +97,7 @@ private:
     const Xbyak::Opmask &tail_opmask_ = k1;
     const Xbyak::Reg64 &reg_tmp_ = r15;
 
-    prelu::jit_prelu_io_multi_dt_helper_t<Vmm> io_;
+    io::jit_io_multi_dt_helper_t<Vmm> io_;
 };
 
 } // namespace x64

@@ -31,16 +31,20 @@ namespace gpu {
 // add slice instruction to remove unnecessary output features.
 class CudnnPadForConvolutions : public HloModulePass {
  public:
-  explicit CudnnPadForConvolutions(bool is_volta_or_later)
-      : is_volta_or_later_(is_volta_or_later) {}
+  explicit CudnnPadForConvolutions(se::CudaComputeCapability compute_capability)
+      : compute_capability_(compute_capability) {}
+
   absl::string_view name() const override {
     return "cudnn_pad_for_convolutions";
   }
   // Run PadForConvolutions on the given module and return if any change is made
-  StatusOr<bool> Run(HloModule* module) override;
+  using HloPassInterface::Run;
+  StatusOr<bool> Run(
+      HloModule* module,
+      const absl::flat_hash_set<absl::string_view>& execution_threads) override;
 
  private:
-  const bool is_volta_or_later_;
+  const se::CudaComputeCapability compute_capability_;
 };
 
 }  // namespace gpu

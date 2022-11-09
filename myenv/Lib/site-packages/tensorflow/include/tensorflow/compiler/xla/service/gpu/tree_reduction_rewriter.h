@@ -75,13 +75,22 @@ namespace gpu {
 //
 class GpuTreeReductionRewriter : public HloModulePass {
  public:
-  GpuTreeReductionRewriter() {}
+  explicit GpuTreeReductionRewriter(
+      se::CudaComputeCapability cuda_compute_capability)
+      : cuda_compute_capability_(cuda_compute_capability) {}
+
   ~GpuTreeReductionRewriter() override = default;
   absl::string_view name() const override {
     return "gpu-tree-reduction-rewriter";
   }
 
-  StatusOr<bool> Run(HloModule* module) override;
+  using HloPassInterface::Run;
+  StatusOr<bool> Run(
+      HloModule* module,
+      const absl::flat_hash_set<absl::string_view>& execution_threads) override;
+
+ private:
+  se::CudaComputeCapability cuda_compute_capability_;
 };
 
 }  // end namespace gpu

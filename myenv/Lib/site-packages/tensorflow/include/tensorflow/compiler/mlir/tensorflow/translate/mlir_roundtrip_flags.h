@@ -16,8 +16,11 @@ limitations under the License.
 #ifndef TENSORFLOW_COMPILER_MLIR_TENSORFLOW_TRANSLATE_MLIR_ROUNDTRIP_FLAGS_H_
 #define TENSORFLOW_COMPILER_MLIR_TENSORFLOW_TRANSLATE_MLIR_ROUNDTRIP_FLAGS_H_
 
+#include <string>
+
 #include "absl/container/flat_hash_set.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringMap.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/framework/types.h"
@@ -26,7 +29,7 @@ limitations under the License.
 
 namespace tensorflow {
 
-struct ArrayInfo {
+struct ArrayInfoBase {
   // The node type when the input node is imported. Typically needs to be
   // specified when passing arbitrary nodes (some node attributes are removed).
   DataType imported_dtype;
@@ -35,9 +38,21 @@ struct ArrayInfo {
   TensorShapeProto shape;
 };
 
+struct ArrayInfo : public ArrayInfoBase {
+  using SubTypeInfo = ArrayInfoBase;
+  // DT_RESOURCE and DT_VARIANT have subtypes
+  std::vector<SubTypeInfo> subtypes;
+};
+
 struct GraphImportConfig {
+  // Returns string representation of config.
+  std::string str() const;
+
   using InputArrays =
-      llvm::MapVector<string, ArrayInfo, llvm::StringMap<unsigned>>;
+      llvm::MapVector<std::string, ArrayInfo, llvm::StringMap<unsigned>>;
+  // The name assigned to the function which is the import result of the given
+  // graph. If empty, a default one will be used.
+  std::string graph_func_name;
   // Maps input node names to node data types and shapes.
   InputArrays inputs;
   // name:index strings for the data outputs.
@@ -57,15 +72,24 @@ struct GraphImportConfig {
   // If true, upgrade legacy features of the graph (for instance, functionalize
   // control-flow).
   bool upgrade_legacy = false;
-  // If true, functionalization is restricted to TPU nodes. This is only needed
-  // if upgrade_legacy is true and if upgrading legacy features of the graph
-  // (which includes functionalization) runs before TPU cluster extraction, as
-  // for example in the MLIR-based TPU bridge. Otherwise, this parameter should
-  // stay false.
-  bool restrict_functionalization_to_tpu_nodes = false;
+  // If true, functionalization is restricted to nodes that will be
+  // XLA-compiled. This is only needed if
+  // - `upgrade_legacy` is true
+  // - upgrading legacy features of the graph (which includes functionalization)
+  //   runs before compilation cluster extraction (as for MLIR-based TPU bridge)
+  // - session runtime is used (session runtime has issues with function names
+  //   rewritten by functionalization).
+  // Otherwise, this parameter should be set to false.
+  bool restrict_functionalization_to_compiled_nodes = false;
   // If true, enables shape inference on input.
   // TODO(jpienaar): This will be removed shortly.
   bool enable_shape_inference = true;
+  // _output_shapes is an unregistered attribute which is used during
+  // GraphConstructor::ConvertGraph to override shapes. It is unfortunately
+  // not always set correctly (which is undesirable and should be addressed)
+  // so make it opt-in to consider it unconditionally also when importing the
+  // graph.
+  bool unconditionally_use_set_output_shapes = false;
 };
 
 struct GraphExportConfig {
